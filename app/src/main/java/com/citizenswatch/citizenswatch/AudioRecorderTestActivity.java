@@ -30,6 +30,7 @@ import java.io.FileNotFoundException;
 public class AudioRecorderTestActivity extends AppCompatActivity {
     private static final int RECORD_AUDIO_REQUEST = 0;
     private static final int WRITE_EXTERNAL_REQUEST = 1;
+    private static final int INTERNET_REQUEST = 2;
 
     private static final String LOG_TAG = "AudioRecordTest";
     private static String mFileName = "audiorecordtest5.pcm";
@@ -168,6 +169,14 @@ public class AudioRecorderTestActivity extends AppCompatActivity {
                     WRITE_EXTERNAL_REQUEST);
         }
 
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.INTERNET)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.INTERNET},
+                    INTERNET_REQUEST);
+        }
+
         Log.e(LOG_TAG, "startRecording part 2");
        /*mRecorder = new MediaRecorder();
         mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -261,6 +270,14 @@ public class AudioRecorderTestActivity extends AppCompatActivity {
                 return;
             }
             case WRITE_EXTERNAL_REQUEST: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                }
+                return;
+            }
+            case INTERNET_REQUEST: {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {

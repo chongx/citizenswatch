@@ -6,8 +6,13 @@ import android.media.MediaRecorder;
 import android.os.Process;
 import android.util.Log;
 
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
+
 import java.io.File;
 import java.io.FileOutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AudioRecorder extends Thread {
@@ -20,6 +25,7 @@ public class AudioRecorder extends Thread {
     private AtomicBoolean recording = new AtomicBoolean(false);
     private File mFile = null;
     private FileOutputStream streamWriter = null;
+    private WebSocketClient mWebSocketClient = null;
 
     public AudioRecorder(File file) {
         bufferSize = AudioRecord.getMinBufferSize(
@@ -28,6 +34,42 @@ public class AudioRecorder extends Thread {
                 RECORDER_AUDIO_ENCODING);
         mFile = file;
         android.os.Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
+        initWebSocket();
+    }
+
+    private void initWebSocket() {
+        URI uri;
+        try {
+            uri = new URI("ws://cw-ranker.herokuapp.com");
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        mWebSocketClient = new WebSocketClient(uri) {
+            @Override
+            public void onOpen(ServerHandshake serverHandshake) {
+                Log.i("Websocket", "Opened");
+
+            }
+
+            @Override
+            public void onMessage(String s) {
+                //
+            }
+
+            @Override
+            public void onClose(int i, String s, boolean b) {
+                Log.i("Websocket", "Closed " + s);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                Log.i("Websocket", "Error " + e.getMessage());
+            }
+        };
+        mWebSocketClient.connect();
+        Log.i("Websocket", "initiating connection");
     }
 
     @Override
@@ -46,6 +88,10 @@ public class AudioRecorder extends Thread {
                 int bytesRead = recorder.read(buffer, 0, buffer.length);
                 if (recording.get()) {
                     streamWriter.write(buffer, 0, bytesRead);
+                    if (bytesRead < bufferSize) {
+                        buffer[bytesRead] = '\0'; // null terminate the buffer
+                    }
+                    mWebSocketClient.send(buffer);
                 }
             }
         } catch (Throwable x) {
